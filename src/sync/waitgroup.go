@@ -8,6 +8,7 @@ import (
 	"internal/race"
 	"sync/atomic"
 	"unsafe"
+	"time"
 )
 
 // A WaitGroup waits for a collection of goroutines to finish.
@@ -138,5 +139,21 @@ func (wg *WaitGroup) Wait() {
 			}
 			return
 		}
+	}
+}
+
+// Waitgroup waits for a set period of time before giving up and failing
+// credit to icza from https://stackoverflow.com/questions/32840687/timeout-for-waitgroup-wait
+func (wg *WaitGroup) WaitFor(timeout time.Duration) bool {
+	c := make(chan struct{})
+	go func() {
+		defer close(c)
+		wg.Wait()
+	}()
+	select {
+	case <-c:
+		return false // completed normally
+	case <-time.After(timeout):
+		return true // timed out
 	}
 }

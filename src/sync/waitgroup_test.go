@@ -10,6 +10,7 @@ import (
 	. "sync"
 	"sync/atomic"
 	"testing"
+	"time"
 )
 
 func testWaitGroup(t *testing.T, wg1 *WaitGroup, wg2 *WaitGroup) {
@@ -208,6 +209,29 @@ func TestWaitGroupAlign(t *testing.T) {
 		x.wg.Done()
 	}(&x)
 	x.wg.Wait()
+}
+
+func TestWaitGroupWaitFor(t *testing.T) {
+	wg := &WaitGroup{}
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		time.Sleep(time.Millisecond*10)
+	} ()
+	if wg.WaitFor(time.Millisecond) {
+		t.Error("WaitFor did not time out.")
+	}
+
+	wg = &WaitGroup{}
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		time.Sleep(time.Millisecond)
+	} ()
+	if !wg.WaitFor(time.Millisecond*10) {
+		t.Error("WaitFor did not exit normally.")
+	}
+
 }
 
 func BenchmarkWaitGroupUncontended(b *testing.B) {
